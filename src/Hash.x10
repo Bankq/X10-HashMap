@@ -1,6 +1,5 @@
 import x10.util.Timer;
 import x10.util.ArrayList;
-import x10.util.HashMap;
 import x10.util.Pair;
 import x10.util.concurrent.Lock;
 /**
@@ -10,20 +9,37 @@ import x10.util.concurrent.Lock;
  * a better scalability.
  */
 
-class Entry {
-    public var k : long;
-    public var v : long;
-    public var s : int;
-}
+
+
 
 public class Hash
 {
-    private var a : long = null;
+
+    private class Entry {
+        public var k : long;
+        public var v : long;
+        public def this(a : long, b : long) {
+            k = a;
+            v = b;
+        }
+    }
+    
+    private var h : Rail[Entry];
+    private var size : long;
 	private var count : long;
 
 	public def this(defV : long){
 	    count = 0;
+	    size = 65536;
+	    h = new Rail[Entry](size);
 	}
+	
+	public def hash(key : long) : long {
+	    val k = key.hashCode();
+	    val index = k & (this.size - 1);
+	    return index;
+	}
+
 
     /**
      * Insert the pair <key,value> in the hash table
@@ -34,6 +50,7 @@ public class Hash
      */
     public def put(key: long, value: long) : long
     {
+        ++count;
         return count;
     }
 
@@ -47,6 +64,7 @@ public class Hash
      */
     public def get(key: long) : Pair[long,long]
     {
+        ++count;
         return new Pair[long, long](count, 0);
     }
 }
