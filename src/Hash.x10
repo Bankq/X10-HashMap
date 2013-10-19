@@ -50,6 +50,7 @@ public class Hash
      */
     public def put(key: long, value: long) : long
     {
+    	/* cxt */
         ++count;
         return count;
     }
