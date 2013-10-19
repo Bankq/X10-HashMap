@@ -9,22 +9,20 @@ import x10.util.concurrent.Lock;
  * The assignment is to replace the content of this class with code that exhibit
  * a better scalability.
  */
+
+class Entry {
+    public var k : long;
+    public var v : long;
+    public var s : int;
+}
+
 public class Hash
 {
-	private var h : HashMap[long,long];
-	private var counter : long;
-	private var defaultValue : Long; // a default value is returned when an element with a given key is not present in the dict.
-	private var pending:ArrayList[long];
-	private var rl : Lock;
-	private var wl : Lock;
+    private var a : long = null;
+	private var count : long;
 
 	public def this(defV : long){
-		counter = 0n;
-		h = new HashMap[long,long]();
-		defaultValue = defV;
-		pending = new ArrayList[long]();
-		rl = new Lock();
-		wl = new Lock();
+	    count = 0;
 	}
 
     /**
@@ -36,17 +34,7 @@ public class Hash
      */
     public def put(key: long, value: long) : long
     {
-		var r : long = -1;
-		//wl.lock();
-		try {
-			r = ++counter;
-			h.put(key,value);
-
-		return r;
-		} finally {
-		  //  wl.unlock();
-		}
-
+        return count;
     }
 
     /**
@@ -59,19 +47,6 @@ public class Hash
      */
     public def get(key: long) : Pair[long,long]
     {
-        
-		var i:long = -1;
-		var value:long = defaultValue;
-		//rl.lock();
-		try {
-			i = ++counter;
-			val boxedValue = h.get(key);
-			try{
-				value = boxedValue();
-			}catch(Exception){}
-        return new Pair[long,long](i,0n);
-		} finally {
-		  //  rl.unlock();
-		}
+        return new Pair[long, long](count, 0);
     }
 }
