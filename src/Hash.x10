@@ -25,21 +25,24 @@ public class Hash
     }
     
     private var h : Rail[Entry];
+    private var capacity : long;
     private var size : long;
 	private var count : long;
+	private var defaultV : long;
 
 	public def this(defV : long){
 	    count = 0;
-	    size = 65536;
-	    h = new Rail[Entry](size);
+	    size = 0;
+	    capacity = 65536;
+	    defaultV = defV;
+	    h = new Rail[Entry](capacity);
 	}
 	
 	public def hash(key : long) : long {
 	    val k = key.hashCode();
-	    val index = k & (this.size - 1);
+	    val index = k & (this.capacity - 1);
 	    return index;
 	}
-
 
     /**
      * Insert the pair <key,value> in the hash table
@@ -50,8 +53,24 @@ public class Hash
      */
     public def put(key: long, value: long) : long
     {
-        ++count;
-        return count;
+        var i : long = hash(key);
+        while (true) {
+        	atomic {
+            	if (h(i) == null) {
+                	var newE : Entry = new Entry(key, value);
+                	h(i) = newE;
+                	++size;
+                	assert (size < (capacity - 1)) : "Full";
+                	++count;
+                	return count;
+            	} else if (this.h(i).k == key) {
+                	h(i).v = value;
+                	++count;
+                	return count;
+            	}
+        	}
+        	i = (i + 1) & (capacity - 1);
+        }
     }
 
     /**
@@ -64,7 +83,18 @@ public class Hash
      */
     public def get(key: long) : Pair[long,long]
     {
-        ++count;
-        return new Pair[long, long](count, 0);
+        var i : long = hash(key);
+        while (true) {
+            atomic {
+                if (h(i) == null) {
+                    ++count;
+                    return new Pair[long, long](count, defaultV);
+                } else if (h(i).k == key) {
+                    ++count;
+                    return new Pair[long, long](count, h(i).v);
+                }
+            }
+            i = (i + 1) & (capacity - 1);
+        }
     }
 }
