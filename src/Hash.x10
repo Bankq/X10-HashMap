@@ -37,7 +37,7 @@ public class Hash
 	}
 	
 	private def probe(cur_idx : long) : long {
-	    return (cur_idx + 1)%capacity;
+	    return (cur_idx + 1) % capacity;
 	}
 
     /**
@@ -54,22 +54,23 @@ public class Hash
         while (true) {
             //Console.OUT.println("Put try: " + i + " with key " + key);
             h(i).lock.writeLock();
+            //Console.OUT.println("Put get lock at: " + i);
             if (h(i).k == -1) {
-               // Console.OUT.println("Put new entry at : " + i + " with key " + key);
                 order = ++count;
                 h(i).k = key;
                 h(i).v = value;
                 h(i).lock.writeUnlock();
+                //Console.OUT.println("Put new entry at : " + i + " with key " + key);
                 return order;
             } else if (h(i).k == key) {
-                //Console.OUT.println("Put update at : " + i + " with key " + key);
                 order = ++count;
                 h(i).v = value;
                 h(i).lock.writeUnlock();
+                //Console.OUT.println("Put update at : " + i + " with key " + key);
                 return order;
             }
-            //Console.OUT.println("Put Read " + i + " with key " + h(i).k);
             h(i).lock.writeUnlock();
+            Console.OUT.println("Put Read " + i + " with key " + h(i).k);
         	i = probe(i);
         }
     }
@@ -89,22 +90,23 @@ public class Hash
         var value : long;
         var order : long;
         while (true) {
-            h(i).lock.readLock();
             //Console.OUT.println("Get try: " + i + " with key " + key);
+            h(i).lock.readLock();
+            //Console.OUT.println("Get get lock at: " + i);
             if (h(i).k == key) {
-                //Console.OUT.println("Get at:" + i + " with key " + key);
-                value = h(i).v;
                 order = ++count;
+                value = h(i).v;
                 h(i).lock.readUnlock();
+                //Console.OUT.println("Get at:" + i + " with key " + key);
                 return new Pair[long, long](order, value);
             } else if (h(i).k == -1) {
-                //Console.OUT.println("Get failed at:" + i + " with key " + key);
                 order = ++count;
                 h(i).lock.readUnlock();
+                //Console.OUT.println("Get failed at:" + i + " with key " + key);
                 return new Pair[long, long](order, defaultV);
             }
-            //Console.OUT.println("Get Read " + i + " with key " + h(i).k);
             h(i).lock.readUnlock();
+            //Console.OUT.println("Get Read " + i + " with key " + h(i).k);
             i = probe(i);
         }
     }
