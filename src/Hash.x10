@@ -9,39 +9,35 @@ import x10.util.concurrent.Lock;
  * a better scalability.
  */
 
-
-
-
 public class Hash
 {
 
-    private class Entry {
-        public var k : long;
-        public var v : long;
-        public def this(a : long, b : long) {
-            k = a;
-            v = b;
-        }
-    }
-    
     private var h : Rail[Entry];
     private var capacity : long;
     private var size : long;
 	private var count : long;
+	private var count_lock : Lock;
 	private var defaultV : long;
 
 	public def this(defV : long, workers : long , ratio : double , ins_per_thread : long , key_limit : long , value_limit : long){
 	    count = 0;
 	    size = 0;
-	    capacity = 128;
+	    capacity = 1024;
 	    defaultV = defV;
 	    h = new Rail[Entry](capacity);
+	    for (i in 0..(capacity - 1)) {
+	        h(i) = new Entry(-1, -1);
+	    }
 	}
 	
-	public def hash(key : long) : long {
+	private def hash(key : long) : long {
 	    val k = key.hashCode();
 	    val index = k & (this.capacity - 1);
 	    return index;
+	}
+	
+	private def probe(cur_idx : long) : long {
+	    return (cur_idx + 1)%capacity;
 	}
 
     /**
@@ -54,22 +50,27 @@ public class Hash
     public def put(key: long, value: long) : long
     {
         var i : long = hash(key);
+        var order : long;
         while (true) {
-        	atomic {
-            	if (h(i) == null) {
-                	var newE : Entry = new Entry(key, value);
-                	h(i) = newE;
-                	++size;
-                	assert (size <= capacity) : "Full";
-                	++count;
-                	return count;
-            	} else if (this.h(i).k == key) {
-                	h(i).v = value;
-                	++count;
-                	return count;
-            	}
-        	}
-        	i = (i + 1) & (capacity - 1);
+            //Console.OUT.println("Put try: " + i + " with key " + key);
+            h(i).lock.writeLock();
+            if (h(i).k == -1) {
+               // Console.OUT.println("Put new entry at : " + i + " with key " + key);
+                order = ++count;
+                h(i).k = key;
+                h(i).v = value;
+                h(i).lock.writeUnlock();
+                return order;
+            } else if (h(i).k == key) {
+                //Console.OUT.println("Put update at : " + i + " with key " + key);
+                order = ++count;
+                h(i).v = value;
+                h(i).lock.writeUnlock();
+                return order;
+            }
+            //Console.OUT.println("Put Read " + i + " with key " + h(i).k);
+            h(i).lock.writeUnlock();
+        	i = probe(i);
         }
     }
 
@@ -85,22 +86,26 @@ public class Hash
     {
         var i : long = hash(key);
         var fail : long = 0;
+        var value : long;
+        var order : long;
         while (true) {
-            atomic {
-                if (h(i) == null) {
-                    ++count;
-                    return new Pair[long, long](count, defaultV);
-                } else if (h(i).k == key) {
-                    ++count;
-                    return new Pair[long, long](count, h(i).v);
-                } else if (fail == capacity) {
-                    ++count;
-                    return new Pair[long, long](count, defaultV);
-                }
+            h(i).lock.readLock();
+            //Console.OUT.println("Get try: " + i + " with key " + key);
+            if (h(i).k == key) {
+                //Console.OUT.println("Get at:" + i + " with key " + key);
+                value = h(i).v;
+                order = ++count;
+                h(i).lock.readUnlock();
+                return new Pair[long, long](order, value);
+            } else if (h(i).k == -1) {
+                //Console.OUT.println("Get failed at:" + i + " with key " + key);
+                order = ++count;
+                h(i).lock.readUnlock();
+                return new Pair[long, long](order, defaultV);
             }
-            ++fail;
-            Console.OUT.println("Fail " + fail);
-            i = (i + 1) & (capacity - 1);
+            //Console.OUT.println("Get Read " + i + " with key " + h(i).k);
+            h(i).lock.readUnlock();
+            i = probe(i);
         }
     }
 }

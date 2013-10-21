@@ -21,7 +21,7 @@ public class Main
 	//DEFAULT CONFIGURATION VALUES
     static private val WORKERS = 8;
 	static private val INS_PER_THREAD = 1000;
-	static private val KEY_LIMIT = 100;
+	static private val KEY_LIMIT = 1000;
 	static private val VALUE_LIMIT = 100;
 	static private val RATIO = 0.8;
 
@@ -32,7 +32,7 @@ public class Main
     static struct LogEntry
     {
         val direction    : Boolean;  //if it is a get or a put
- 		val order        : long;     //at which point this operation is in the linearized order 
+ 			val order        : long;     //at which point this operation is in the linearized order 
         val key          : long;
         val value        : long; 
 
