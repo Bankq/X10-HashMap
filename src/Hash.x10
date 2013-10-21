@@ -21,6 +21,7 @@ public class Hash
 
 	public def this(defV : long, workers : long , ratio : double , ins_per_thread : long , key_limit : long , value_limit : long){
 	    count = 0;
+	    count_lock = new Lock();
 	    size = 0;
 	    capacity = 1024;
 	    defaultV = defV;
@@ -56,15 +57,19 @@ public class Hash
             h(i).lock.writeLock();
             //Console.OUT.println("Put get lock at: " + i);
             if (h(i).k == -1) {
+                count_lock.lock();
                 order = ++count;
                 h(i).k = key;
                 h(i).v = value;
+                count_lock.unlock();
                 h(i).lock.writeUnlock();
                 //Console.OUT.println("Put new entry at : " + i + " with key " + key);
                 return order;
             } else if (h(i).k == key) {
+                count_lock.lock();
                 order = ++count;
                 h(i).v = value;
+                count_lock.unlock();
                 h(i).lock.writeUnlock();
                 //Console.OUT.println("Put update at : " + i + " with key " + key);
                 return order;
@@ -94,13 +99,17 @@ public class Hash
             h(i).lock.readLock();
             //Console.OUT.println("Get get lock at: " + i);
             if (h(i).k == key) {
+                count_lock.lock();
                 order = ++count;
                 value = h(i).v;
+                count_lock.unlock();
                 h(i).lock.readUnlock();
                 //Console.OUT.println("Get at:" + i + " with key " + key);
                 return new Pair[long, long](order, value);
             } else if (h(i).k == -1) {
+                count_lock.lock();
                 order = ++count;
+                count_lock.unlock();
                 h(i).lock.readUnlock();
                 //Console.OUT.println("Get failed at:" + i + " with key " + key);
                 return new Pair[long, long](order, defaultV);
