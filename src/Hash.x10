@@ -30,10 +30,10 @@ public class Hash
 	private var count : long;
 	private var defaultV : long;
 
-	public def this(defV : long){
+	public def this(defV : long, workers : long , ratio : double , ins_per_thread : long , key_limit : long , value_limit : long){
 	    count = 0;
 	    size = 0;
-	    capacity = 65536;
+	    capacity = 128;
 	    defaultV = defV;
 	    h = new Rail[Entry](capacity);
 	}
@@ -60,7 +60,7 @@ public class Hash
                 	var newE : Entry = new Entry(key, value);
                 	h(i) = newE;
                 	++size;
-                	assert (size < (capacity - 1)) : "Full";
+                	assert (size <= capacity) : "Full";
                 	++count;
                 	return count;
             	} else if (this.h(i).k == key) {
@@ -84,6 +84,7 @@ public class Hash
     public def get(key: long) : Pair[long,long]
     {
         var i : long = hash(key);
+        var fail : long = 0;
         while (true) {
             atomic {
                 if (h(i) == null) {
@@ -92,8 +93,13 @@ public class Hash
                 } else if (h(i).k == key) {
                     ++count;
                     return new Pair[long, long](count, h(i).v);
+                } else if (fail == capacity) {
+                    ++count;
+                    return new Pair[long, long](count, defaultV);
                 }
             }
+            ++fail;
+            Console.OUT.println("Fail " + fail);
             i = (i + 1) & (capacity - 1);
         }
     }
