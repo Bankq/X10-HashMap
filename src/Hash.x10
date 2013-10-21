@@ -23,12 +23,19 @@ public class Hash
 	    count = 0;
 	    count_lock = new Lock();
 	    size = 0;
-	    capacity = 1024;
+	    capacity = getCapacity(key_limit);
 	    defaultV = defV;
 	    h = new Rail[Entry](capacity);
 	    for (i in 0..(capacity - 1)) {
 	        h(i) = new Entry(-1, -1);
 	    }
+	}
+	
+	private def getCapacity(k : long) : long {
+	     var i : long = 2;
+	     while (i < k)
+	         i *= 2;
+	     return i;
 	}
 	
 	private def hash(key : long) : long {
