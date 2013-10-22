@@ -21,7 +21,7 @@ public class Main
 	//DEFAULT CONFIGURATION VALUES
     static private val WORKERS = 8;
 	static private val INS_PER_THREAD = 1000;
-	static private val KEY_LIMIT = 10;
+	static private val KEY_LIMIT = 2000;
 	static private val VALUE_LIMIT = 100;
 	static private val RATIO = 0.8;
 

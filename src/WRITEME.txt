@@ -1,0 +1,21 @@
+1. How did you improve your baseline implementation?
+
+At the first approach we went with a hashmap implementation that requires an atomic operation each time a thread accesses the map, however we found that, even though it gains a improvement compared to the given baseline, it still involves too much blocking.
+
+Then we decided to go with a solution requiring locks. But instead a global lock, we implement ourselves a Read-Write lock and each hashmap bucket has its only RWlock. It allows us to avoid blocking as much as possible (a thread only blocks only when another thread is trying to write the same bucket). And it gains satisfying improvement on preformance.
+
+We design a class named Entry to instantiate all the key-value pairs. Thus, all the key-value pair in our hashmap is an instance of Entry. To store the entries, we use a Rail with the type of Entry. And the solution for the collision is a kind of open address.  Each instance would occupy the bucket only by itself -- no chaining or other external storage structures -- taking the advantage of linear probing.
+
+According to the study of linear probing and chaining, we set the load factor of our hash map to 0.8 which is believed to be good for the linear probing. (under this circumstance linear probing is twice as fast as chaining when searching a key)
+
+What's more, the size of the Entry Rail is decided according to the actual input arguments: key_limit, workers and ins_per_thread. As we can see, key_limit indicates at most how many buckets would we need; Let N = workers * ins_per_thread; N indicates how many instance at in total would we have. Therefore, we need at most SIZE = MIN(key_limit, N). That is the minimal size we need to store all the key-value pairs into the Entry Rail. We need to increase the size, however, to achieve the reasonable load factor we've mentioned above. Thus, the minimal size becomes to SIZE/load_factor. To further improve the baseline performance, we fix the size to 2^n.
+
+2. What did/didn't work and why?
+
+Along with the abandoned lock-free approach, we also had trouble on the implementation of Read-Write lock. We were facing some weird IllegalStateException on our implementation using X10 builtin mutex lock. We managed to figure out that, in order to call Lock.unlock(), the caller must hold the lock itself before. But for the Read-Write lock we want, the write lock may be unlocked by any thread ( the last quitting one). Then instead of using a builtin lock, we basically write our own naive conditional variable to simulate the behavior. Luckily, we didn't suffer much from performance.
+
+3. What improvements could you make to the code given more time?
+
+1) In the requirement, the returning order count must be from 1 to N, which is not necessary since as long as we are providing a total order, we will have no trouble to check the correctness. Thus, if we can modify the correctness checking routine, we can simply concurrently return a order (say the system time) instead of maintaining a sharing count variable with class. Because we need to protect the variable, inevitably there will unnecessary blocking between threads.
+
+2) In the submitted solution, we may facing a Writer Starving problem, because our RWLock implementation always favor reader over writer. It's not hard to fix this, we leave it there because it's not the part we are caring as long as it doesn't affect the correctness and performance.
